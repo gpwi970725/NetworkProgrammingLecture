@@ -1,86 +1,62 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <signal.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#define MAXBUF 1024
+// TCP echo client program
+#include "headerFiles.h"
 
-int main(int argc, char *argv[]) { // char ** argv
-	int server_sockfd, client_sockfd;
-	int state, client_len;
-	int pid;
-	int servPort;
-
-	struct sockaddr_in clientaddr, serveraddr;
-
-	char buf[MAXBUF];
+int main(int argc, char* arg[]) {
+	// Declare and define
+	int s, n, servPort, len, maxLen;
 	char* servName;
 	char* string;
+	char buffer[256+1];
+	char* ptr = buffer;
+	struct sockaddr_in servAddr;
 
-	if (argc!= 4) {
-		printf("Usage : %s [IP] [port] [message] \n", argv[0]);
-		return 1;
+	// Check and set arguments
+	printf("%d %s %s %s\n", argc, arg[1], arg[2], arg[3]);
+	if (argc != 4) {
+		printf("Error: three arguments are needed!");
+		exit(1);
 	}
 
-	servName = argv[1];
-	servPort = atoi(argv[2]);
-	string = argv[3];
+	servName = arg[1];
+	servPort = atoi(arg[2]);
+	string = arg[3];
 
-	// TCP 소켓을만듦
-	if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("socket error : ");
-		exit(0);
+	// Create remote (server) socket address
+	memset(&servAddr, 0, sizeof(servAddr));
+	servAddr.sin_family = AF_INET;
+	inet_pton(AF_INET, servName, &servAddr.sin_addr);
+	servAddr.sin_port = htons(servPort);
+
+	// Create socket
+	if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("Error: socket creation failed!");
+		exit(1);
 	}
 
-	// 서버에서받아들인클라이언트주소와포트주소를설정
-	bzero(&serveraddr, sizeof(serveraddr));
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serveraddr.sin_port = htons(atoi(argv[1]));
-
-	// 설정된주소를소켓에연결
-	state = bind(server_sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
-	if (state == -1) { // 리턴값의상태확인
-		perror("bind error : ");
-		exit(0);
+	// Connect to the server
+	if (connect (s, (struct sockaddr*)&servAddr, sizeof(servAddr)) < 0) {
+		perror("Error: connection failed!");
+		exit(1);
 	}
 
-	// 수신할수있는클라이언트연결수가5개로설정
-	state = listen(server_sockfd, 5);
-	if (state == -1) { // 리턴값의상태확인
-		perror("listen error : ");
-		exit(0);
-	}
+	// Data transfer section
+	send (s, string, strlen(string), 0);
+	while ((n = recv(s, ptr, maxLen, 0)) > 0) {
+		ptr += n;
+		maxLen -= n;
+		len += n;
+	} // End of while loop
+	
+	// Print and verify the echoed string
+	buffer[len] = '\0';
+	printf("Echoed string received: ");
+	fputs(buffer, stdout);
 
-	while(1) {
-		// 클라이언트의연결을받아들임
-		client_sockfd = accept(server_sockfd, (struct sockaddr *)&clientaddr, &client_len);
-		if (client_sockfd == -1) { // 항상오류는검사해주어야함
-			perror("Accept error : ");
-			exit(0);
-		}
-		// 클라이언트와연결이성공적이면자식프로세스를하나만듦
-		pid = fork();
-		if (pid== 0) { // 자식프로세스인경우다음문장들을수행하고, 부모인경우계속하여 while() 수행
-			while(1) {
-				memset(buf, 0, MAXBUF);
-				if (read(client_sockfd, buf, MAXBUF-1) <= 0) { // 데이터가존재할때까지계속읽음
-					close(client_sockfd);
-					exit(0);
-				}
-				printf(" > %s", buf);
-				write(client_sockfd, buf, strlen(buf)); // echo
-			}
-		}
-		if (pid == -1) { // 항상오류는검사해주어야함
-			perror("fork error : ");
-			return 1;
-		}
-	}
-	close(client_sockfd);
+	// Close socket
+	close(s);
+
+	// Stop program
+	exit(0);
 }
+
+
