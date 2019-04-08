@@ -14,15 +14,22 @@ int main(int argc, char *argv[]) { // char ** argv
 	int server_sockfd, client_sockfd;
 	int state, client_len;
 	int pid;
+	int servPort;
 
 	struct sockaddr_in clientaddr, serveraddr;
 
 	char buf[MAXBUF];
+	char* servName;
+	char* string;
 
-	if (argc!= 2) {
-		printf("Usage : %s [port]\n", argv[0]);
+	if (argc!= 4) {
+		printf("Usage : %s [IP] [port] [message] \n", argv[0]);
 		return 1;
 	}
+
+	servName = argv[1];
+	servPort = atoi(argv[2]);
+	string = argv[3];
 
 	// TCP 소켓을만듦
 	if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {

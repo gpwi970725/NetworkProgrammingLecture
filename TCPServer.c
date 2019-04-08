@@ -22,13 +22,13 @@ int main(int argc,char *argv[]) {
 	int serverfd, clientfd;
 	int len, msg_size;
 	if(argc!=2) {
-		printf("usage:%s[port]\n",argv[0]);
+		printf("usage : %s [port] \n", argv[0]);
 		exit(0);
 	}
 
 	//소켓생성
 	if ((serverfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) { // 오류가발생하면
-		printf("Server:Can'tcreatesocket\n");
+		printf("Server : Can't create socket \n");
 		exit(0);
 	}
 
@@ -41,7 +41,7 @@ int main(int argc,char *argv[]) {
 	server_addr.sin_port = htons(atoi(argv[1]));
 	//bind()호출, 생성된소켓에입력한서버주소를연결
 	if(bind(serverfd,(struct sockaddr *)&server_addr,sizeof(server_addr))<0) {
-		printf("Server:Can’tbindlocaladdress of server\n");
+		printf("Server : Can't bind local address of server \n");
 		exit(0);
 	}
 
@@ -61,18 +61,18 @@ int main(int argc,char *argv[]) {
 		// 클라이언트의요청을감지하면accept 함수가실행되고그반환값으로클라이언트의소켓번호가생성됩니다.
 		clientfd = accept(serverfd, (struct sockaddr *)&client_addr, &len);
 		if(clientfd<0) {
-			printf("Server:failed to accept the client requests.\n");
+			printf("Server : failed to accept the client requests.\n");
 			exit(0);
 		}
 		// 클라이언트주소를얻음
 		inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, temp, sizeof(temp));
-		printf("Server:%sclientconnected.\n", temp);
+		printf("Server : %s client connected. \n", temp);
 
 		msg_size = read(clientfd, buffer, MAXBUF);
 		write(clientfd,buffer,msg_size);
 		// 클라이언트와연결을끊음
 		close(clientfd);
-		printf("Server:%sclientclosed.\n", temp);
+		printf("Server : %s client closed. \n", temp);
 	}
 	close(serverfd);
 	return 0;
